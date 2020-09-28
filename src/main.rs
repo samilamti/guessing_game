@@ -66,8 +66,8 @@ fn main() {
         }
 
         match rand::thread_rng().gen_range(0, 2) {
-            0 => println!("Your guess {} is {} than the secret number.", guess, accuracy_responses[&accuracy.inverse()]),
-            _ => println!("The secret number is {} than your guess {}.", accuracy_responses[&accuracy], guess)
+            0 => println!("Your guess is {} than the secret number.", accuracy_responses[&accuracy.inverse()]),
+            _ => println!("The secret number is {} than your guess.", accuracy_responses[&accuracy])
         };
 
         guess = prompt(random_prompt_string(), secret_range_from, secret_range_to_excl);

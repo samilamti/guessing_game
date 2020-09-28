@@ -9,7 +9,7 @@ pub struct SecretNumber {
 
 }
 
-#[derive(PartialEq, PartialOrd, Eq, Hash, Debug)]
+#[derive(PartialEq, Eq, Hash)]
 pub enum Accuracy {
     MuchLess,
     LessThanHalf,
