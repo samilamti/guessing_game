@@ -1,16 +1,12 @@
 use std::io::{self, Write};
 use rand::Rng;
 use std::collections::HashMap;
-use crate::guess::Guess;
-use crate::guess::Accuracy;
+use crate::secret_number::SecretNumber;
+use crate::secret_number::Accuracy;
 
-mod guess;
+mod secret_number;
 
-fn random_number(from: u16, to_exclusive: u16) -> u16 {
-    return rand::thread_rng().gen_range(from, to_exclusive);
-}
-
-fn prompt(question: String, secret_range_from: u16, secret_range_to_excl: u16) -> Guess {
+fn prompt(question: String, secret_range_from: u16, secret_range_to_excl: u16) -> u16 {
     loop {
         print!("{}", question);
         io::stdout().flush().unwrap();
@@ -19,9 +15,13 @@ fn prompt(question: String, secret_range_from: u16, secret_range_to_excl: u16) -
         io::stdin()
             .read_line(&mut guess)
             .expect("Failed to read line");
-
+        
         match guess.trim().parse::<u16>() {
-            Ok(num) => return Guess::new(num),
+            Ok(num) if secret_range_from <= num && num < secret_range_to_excl => return num,
+            Ok(_) => {
+                println!("Nice guess, but the secret number is between {} and {} ... ;)", secret_range_from, secret_range_to_excl);
+                continue;
+            },
             Err(_) => {
                 println!("Please guess a number between {} and {} ... ;)", secret_range_from, secret_range_to_excl);
                 continue;
@@ -31,18 +31,18 @@ fn prompt(question: String, secret_range_from: u16, secret_range_to_excl: u16) -
 }
 
 fn random_prompt_string() -> String {
-    // Let's go with a crazy one-liner, because we *can*!
-    return ["Guess again: ", "You next guess? "][random_number(0, 2) as usize].to_string()
+    let random_number = rand::thread_rng().gen_range(0, 2);
+    let variants = vec!["Guess again: ", "You next guess? "];
+    let random_string = variants[random_number as usize].to_string();
+    return random_string;
 }
 
 fn main() {
     println!("Guess the number! ");
 
-    let secret_range_from = random_number(1, 101);
-    let secret_range_multiplier = random_number(3, 6);
-    let secret_range_to_excl = secret_range_from * secret_range_multiplier;
-    let secret_number = random_number(secret_range_from, secret_range_to_excl);
-    let mut number_of_guesses = 0;
+    let mut secret_number = SecretNumber::new();
+    let secret_range_from = secret_number.range_from();
+    let secret_range_to_excl = secret_number.range_to_excl();
 
     let mut accuracy_responses = HashMap::new();
     accuracy_responses.insert(Accuracy::More, "larger");
@@ -52,30 +52,23 @@ fn main() {
     accuracy_responses.insert(Accuracy::LessThanHalf, "less than half");
     accuracy_responses.insert(Accuracy::MuchLess, "a lot smaller");
 
-    let mut guess = prompt(format!("Guess a number between {} and {}: ", secret_range_from, secret_range_to_excl), secret_range_from, secret_range_to_excl);
+    let mut guess = prompt(format!("Guess a number between {} and {}: ", secret_range_from, secret_range_to_excl), secret_range_from, secret_range_to_excl); 
     loop {        
-        number_of_guesses += 1;
+        let accuracy = &secret_number.guess(&guess);
+        if accuracy == &Accuracy::Perfect {
+            println!("You got it after {} tries! Well done!", secret_number.number_of_guesses());
+            break;
+        }
 
-        if guess.value() == 42 && secret_number != 42 {
+        if guess == 42 {
             println!("42 is the answer to life the universe and everything, BUT it's not the secret number ...");
             continue;
         }
 
-        let mut accuracy = guess.compare_to(&secret_number);
-        if accuracy == Accuracy::Perfect {
-            println!("You got it after {} tries! Well done!", number_of_guesses);
-            break;
-        }
-
-        let response_option = random_number(0, 2);
-        if response_option == 1 { accuracy = accuracy.inverse(); }
-
-        let comparison = accuracy_responses[&accuracy];
-        if response_option == 0 {
-            println!("Your guess is {} than the secret number.", comparison);
-        } else {
-            println!("The secret number is {} than your guess.", comparison);
-        }
+        match rand::thread_rng().gen_range(0, 2) {
+            0 => println!("Your guess {} is {} than the secret number.", guess, accuracy_responses[&accuracy.inverse()]),
+            _ => println!("The secret number is {} than your guess {}.", accuracy_responses[&accuracy], guess)
+        };
 
         guess = prompt(random_prompt_string(), secret_range_from, secret_range_to_excl);
     }
